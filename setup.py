@@ -1,3 +1,12 @@
+'''
+FilePath: /python-Dodrio/setup.py
+Descripttion: 
+Author: Yixiang Chen
+version: 
+Date: 2025-03-24 15:57:41
+LastEditors: Yixiang Chen
+LastEditTime: 2025-03-24 19:53:05
+'''
 
 from setuptools import setup, find_packages
 
@@ -14,7 +23,7 @@ setup(
         license='MIT',
         description=DESCRIPTION,
         long_description=LONG_DESCRIPTION,
-        url="https://github.com/yixiangchen1995/Dodrio",
+        url="https://github.com/yixiangchen1995/python-Dodrio",
         packages=find_packages(),
         install_requires=[
             'numpy',
