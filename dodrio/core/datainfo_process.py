@@ -1,13 +1,12 @@
 '''
-FilePath: /base-dodrio/dodrio/core/datainfo_process.py
+FilePath: /python-Dodrio/dodrio/core/datainfo_process.py
 Descripttion: 
 Author: Yixiang Chen
 version: 
 Date: 2025-03-24 15:18:58
 LastEditors: Yixiang Chen
-LastEditTime: 2025-03-24 17:13:35
+LastEditTime: 2025-03-25 15:51:52
 '''
-
 
 import os
 import pandas as pd
@@ -40,14 +39,15 @@ def load_pack_dict(input_dir, from_type='parquet'):
         pack_dict.setdefault(packname, []).append(name)
     return pack_dict
 
-def gen_infodir(input_dir, info_dir, out_dir, info_type, kl=['text'], from_type='parquet'):
+def gen_infodir(input_dir, info_dir, out_dir, info_type, kl=['text'], lang='nolang', from_type='parquet'):
     '''
         descripttion: 
         param {*} input_dir: data dir 
         param {*} info_dir: text and info original dir
         param {*} out_dir: out_dir
-        param {*} info_type
+        param {*} info_typ
         param {*} kl
+        param {*} lang
         param {*} from_type
         return {*}
     '''
@@ -57,7 +57,10 @@ def gen_infodir(input_dir, info_dir, out_dir, info_type, kl=['text'], from_type=
     info_dict, keys_list = fun_load_info(info_dir, kl) 
     info_list_file = os.path.join(out_dir, 'uttinfo_text.list')
     opof = open(info_list_file, 'w')
-    outline = '|'.join(keys_list) + '|package_id\n'
+    if (lang != 'nolang') and ('language' not in keys_list):
+        outline = '|'.join(keys_list) + '|package_id|language\n'
+    else:
+        outline = '|'.join(keys_list) + '|package_id\n'
     opof.write(outline)
     for packid in pack_dict.keys():
         uttlist = pack_dict[packid]
@@ -73,12 +76,16 @@ def gen_infodir(input_dir, info_dir, out_dir, info_type, kl=['text'], from_type=
                     keydata.append(None)
                     print(f'There is no {utt} info for {kk}')
             df[kk] = keydata
+        if (lang != 'nolang') and ('language' not in keys_list):
+            df['language'] = [lang] * len(uttlist) 
         df.to_parquet(out_df_path)
         print(f'{packid}.info had been Saved')
         for utt in uttlist:
             if utt in info_dict.keys():
                 outlist = [str(info_dict[utt][kk]) if info_dict[utt][kk] else BLANK_STRING for kk in keys_list]
                 outlist.append(str(packid+'.info'))
+                if (lang != 'nolang') and ('language' not in keys_list):
+                    outlist.append(lang)
                 outline = '|'.join(outlist) + '\n'
                 opof.write(outline)
     opof.close()

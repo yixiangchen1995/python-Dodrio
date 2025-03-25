@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-24 15:50:51
 LastEditors: Yixiang Chen
-LastEditTime: 2025-03-25 14:48:08
+LastEditTime: 2025-03-25 15:22:11
 '''
 
 
@@ -18,3 +18,7 @@ from dodrio.core.package_base import (
 )
 
 from dodrio.core.datainfo_process import gen_infodir
+
+from dodrio.genlist.gendatalist import (
+    genListDir
+)
