@@ -1,0 +1,3 @@
+build/*
+dist/*
+dodrio.egg-info/*
