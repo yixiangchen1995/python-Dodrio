@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-27 09:59:30
 LastEditors: Yixiang Chen
-LastEditTime: 2025-03-27 11:20:54
+LastEditTime: 2025-03-28 11:52:37
 '''
 
 import numpy as np
@@ -39,17 +39,25 @@ class extractor_embedding:
                            sample_frequency=16000)
         feat = feat - feat.mean(dim=0, keepdim=True)
         embedding = self.ort_session.run(None, {self.ort_session.get_inputs()[0].name: feat.unsqueeze(dim=0).cpu().numpy()})[0].flatten().tolist()
-        spk = utt2spk[utt]
+        if utt in utt2spk.keys():
+            spk = utt2spk[utt]
+        else:
+            spk = 'SpkNone'
         if spk not in self.spk2embedding:
             self.spk2embedding[spk] = []
         self.spk2embedding[spk].append(embedding)
         embedding = np.array(embedding)
         return embedding
     
-    def spk_embedding_save(self, floatnpwav, utt, utt2spk):
+    def mean_spk_embedding(self):
         for k, v in self.spk2embedding.items():
             self.spk2embedding[k] = torch.tensor(v).mean(dim=0).tolist()
-        spk = utt2spk[utt]
+    
+    def spk_embedding_save(self, floatnpwav, utt, utt2spk):
+        if utt in utt2spk.keys():
+            spk = utt2spk[utt]
+        else:
+            spk = 'SpkNone'
         spkembedding = self.spk2embedding[spk]
         spkembedding = np.array(spkembedding)
         return spkembedding
