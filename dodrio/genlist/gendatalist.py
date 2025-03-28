@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-02-08 17:25:21
 LastEditors: Yixiang Chen
-LastEditTime: 2025-03-27 20:59:40
+LastEditTime: 2025-03-28 10:10:02
 '''
 
 import os
@@ -173,7 +173,7 @@ def datadirProcess(datadir, featlist, check_func):
     for featname in featlist:
         feat_dir = os.path.join(datadir, featname+'_dir')
         supfeat_dict[featname], kl_dict[featname] =  feat_dict_load(feat_dir, featname)
-        all_keylist.append(featname)
+        all_keylist.append('featname_'+featname)
         all_keylist.extend(kl_dict[featname])
     
     out_dict = {}
@@ -188,7 +188,7 @@ def datadirProcess(datadir, featlist, check_func):
             outinfo_list.append(featname)
             outinfo_list.extend(supfeat_dict[featname][utt])
         if check_func(outinfo_list):
-            out_dict.append(outinfo_list)
+            out_dict[utt] = outinfo_list
     return out_dict, all_keylist
 
 
@@ -204,6 +204,7 @@ def gen_datalist(supdir_list, outdir, featlist, check_func, prefix, subnum=50000
     os.makedirs(sub_table_dir, exist_ok=True)
     spk_id_file = os.path.join(outdir, 'spk_name.dict') 
     list_list_file = os.path.join(outdir, 'list_subtable.list')
+    keys_file = os.path.join(outdir, 'keys_name') 
 
     spkdict = {}
     spkid = 0
@@ -237,6 +238,11 @@ def gen_datalist(supdir_list, outdir, featlist, check_func, prefix, subnum=50000
                 oallt.write(outline)
 
             tmp_idx += 1
+    with open(keys_file, 'w') as okf:
+        save_keys = ['uttid']
+        save_keys.extend(all_keylist)
+        oline = '|'.join(save_keys) + '\n'
+        okf.write(oline)
 
     if allsave_flag:
         oallt.close()

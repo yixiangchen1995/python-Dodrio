@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-26 19:23:27
 LastEditors: Yixiang Chen
-LastEditTime: 2025-03-26 20:12:05
+LastEditTime: 2025-03-28 10:36:15
 '''
 
 
@@ -16,6 +16,8 @@ from tqdm import tqdm
 import numpy as np
 import pyarrow.parquet as pq
 
+
+####################### Load data block ###################### 
 
 def get_file_list(inp_dir, suffix='.wav'):
     itm = []
@@ -115,3 +117,51 @@ def load_pack_audio_data(packp, infolistf='', return_sr = False):
             else:
                 outdict[utt] = wav
     return outdict
+
+
+####################### Load single ######################
+
+def load_audio_single(packp, start, end):
+    with open(packp, 'rb') as opf :
+        opf.seek(start)
+        data = opf.read(end-start)
+    wav = np.frombuffer(data, dtype=np.int16)
+    wav = wav / 32768
+    return wav
+
+def load_feat_single(featpack, start, end, shape):
+    with open(featpack, 'rb') as opf :
+        opf.seek(start)
+        data = opf.read(end-start)
+    feat = np.frombuffer(data, dtype=np.float32)
+    feat = np.reshape(feat, shape)
+    return feat
+
+def load_data_from_line(infoline):
+    spl = infoline.strip().split('|')
+    data_dict = {}
+    uttid = spl[0]
+    wavp, wstart, wend = spl[1], int(spl[2]), int(spl[3])
+    audio = load_audio_single(wavp, wstart, wend) 
+    spkid, text, language = spl[4], spl[5], spl[6]
+
+    data_dict['uttid'] = uttid
+    data_dict['audio'] = audio
+    data_dict['spkid'] = spkid
+    data_dict['text'] = text
+    data_dict['language'] = language
+
+    feat_type_num = (len(spl)- 7) // 5
+    for idx in range(feat_type_num):
+        beginid = 7 + idx*5 
+        featname = spl[beginid]
+        featpack = spl[beginid+1]
+        fstart, fend, fshape = int(spl[beginid+2]), int(spl[beginid+3]), spl[beginid+4]
+        fshape = [int(xx) for xx in fshape.split(',')]
+        feat_data = load_feat_single(featpack, fstart, fend, fshape)
+        data_dict[featname] = feat_data
+
+    return data_dict 
+        
+
+
