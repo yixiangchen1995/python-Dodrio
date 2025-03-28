@@ -5,13 +5,13 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-24 15:18:58
 LastEditors: Yixiang Chen
-LastEditTime: 2025-03-25 15:51:52
+LastEditTime: 2025-03-28 11:40:07
 '''
 
 import os
 import pandas as pd
 
-from dodrio.core.load_info import load_info_dict_libritts, load_info_dict_emilia, load_info_dict_tfile_supdir, load_info_dict_genshin, load_info_dict_table
+from dodrio.core.load_info import load_info_dict_libritts, load_info_dict_emilia, load_info_dict_tfile_supdir, load_info_dict_genshin, load_info_dict_table, load_info_dict_single_spk
 
 BLANK_STRING='BlankNone'
 info_loadfn_dict = {
@@ -20,6 +20,7 @@ info_loadfn_dict = {
     'supdir': load_info_dict_tfile_supdir,
     'genshin': load_info_dict_genshin,
     'table': load_info_dict_table,
+    'singlespk': load_info_dict_single_spk,
 }
 
 ################# other info save ####################

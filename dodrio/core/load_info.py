@@ -1,11 +1,11 @@
 '''
-FilePath: /base-dodrio/dodrio/core/load_info.py
+FilePath: /python-Dodrio/dodrio/core/load_info.py
 Descripttion: 
 Author: Yixiang Chen
 version: 
 Date: 2025-03-24 15:28:08
 LastEditors: Yixiang Chen
-LastEditTime: 2025-03-24 17:24:00
+LastEditTime: 2025-03-28 11:41:23
 '''
 
 import os
@@ -78,6 +78,22 @@ def load_info_dict_genshin(info_dir, kl=['text']):
     keys_list = ['id', 'speaker', 'text', 'language']
     return info_dict, keys_list
 
+def load_info_dict_single_spk(info_dir, kl=['text']):
+    sufdict = {'text': '_textpuncnew.txt'}
+    info_dict = {}
+    spk = os.path.split(info_dir)[-1] 
+    spk_dir = info_dir
+    tf_list = get_file_list_tail(spk_dir, sufdict['text'])
+    for tff in tf_list:
+        #basename = os.path.split(tff)[-1].split('.')[0]
+        uttid = os.path.split(tff)[-1].split(sufdict['text'])[0]
+        with open(tff, 'r') as otff:
+            text = otff.read().strip()
+        useinfo = {'id':uttid, 'speaker':spk, 'text':text, 'language':'ZH'}
+        info_dict[uttid] = useinfo
+    keys_list = ['id', 'speaker', 'text', 'language']
+    return info_dict, keys_list
+
 def load_info_dict_table(info_dir, kl):
     use_file = 'info_align.list'
     titleid_list = os.listdir(info_dir)
@@ -131,3 +147,5 @@ def load_info_dict_libritts(info_dir, kl):
     else:
         keys_list = ['id', 'chapterid', 'speaker', 'text']
     return info_dict, keys_list
+
+
