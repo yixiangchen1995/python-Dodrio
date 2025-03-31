@@ -1,8 +1,10 @@
+
 from setuptools import setup, find_packages
 
-VERSION = '0.0.1' 
+VERSION = '0.1.1' 
 DESCRIPTION = 'Data Package for TTS '
-LONG_DESCRIPTION = 'Data Package for TTS with a slightly longer description'
+#LONG_DESCRIPTION = 'Data Package for TTS with a slightly longer description'
+LONG_DESCRIPTION = open("README.md", encoding="utf-8").read()
 
 # 配置
 setup(
