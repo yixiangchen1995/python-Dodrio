@@ -15,6 +15,7 @@ setup(
         license='MIT',
         description=DESCRIPTION,
         long_description=LONG_DESCRIPTION,
+        long_description_content_type="text/markdown",
         url="https://github.com/yixiangchen1995/python-Dodrio",
         packages=find_packages(),
         install_requires=[
