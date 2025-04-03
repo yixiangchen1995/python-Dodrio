@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-26 19:23:27
 LastEditors: Yixiang Chen
-LastEditTime: 2025-03-28 10:36:15
+LastEditTime: 2025-04-03 17:26:50
 '''
 
 
@@ -101,7 +101,8 @@ def load_pack_audio_data(packp, infolistf='', return_sr = False):
         with open(info_file, 'r') as iff:
             info_list = iff.readlines()
         packname = os.path.split(packp)[-1] 
-        for info in tqdm(info_list):
+        #for info in tqdm(info_list):
+        for info in info_list:
             utt, pf, start, end = info.split('|')
             start = int(start)
             end = int(end)

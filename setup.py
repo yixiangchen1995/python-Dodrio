@@ -5,12 +5,12 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-24 15:57:41
 LastEditors: Yixiang Chen
-LastEditTime: 2025-04-01 16:00:25
+LastEditTime: 2025-04-03 17:36:50
 '''
 
 from setuptools import setup, find_packages
 
-VERSION = '0.1.2' 
+VERSION = '0.2.1' 
 DESCRIPTION = 'Data Package for TTS '
 #LONG_DESCRIPTION = 'Data Package for TTS with a slightly longer description'
 LONG_DESCRIPTION = open("README.md", encoding="utf-8").read()
@@ -34,7 +34,7 @@ setup(
             'scipy',
             'tqdm',
             'librosa'
-        ], # add any additional packages that 
+        ], # add any additional packages that ## add tinytag package
         
         keywords=['python', 'first package'],
         classifiers= [

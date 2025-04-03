@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-24 15:18:58
 LastEditors: Yixiang Chen
-LastEditTime: 2025-03-28 11:40:07
+LastEditTime: 2025-04-03 17:36:38
 '''
 
 import os
@@ -40,7 +40,10 @@ def load_pack_dict(input_dir, from_type='parquet'):
         pack_dict.setdefault(packname, []).append(name)
     return pack_dict
 
-def gen_infodir(input_dir, info_dir, out_dir, info_type, kl=['text'], lang='nolang', from_type='parquet'):
+def fake_func(info_dir, kl):
+    return 0
+
+def gen_infodir(input_dir, info_dir, out_dir, info_type, kl=['text'], lang='nolang', from_type='parquet', info_func=fake_func):
     '''
         descripttion: 
         param {*} input_dir: data dir 
@@ -54,7 +57,10 @@ def gen_infodir(input_dir, info_dir, out_dir, info_type, kl=['text'], lang='nola
     '''
     os.makedirs(out_dir, exist_ok=True)
     pack_dict = load_pack_dict(input_dir, from_type)
-    fun_load_info = info_loadfn_dict[info_type]
+    if info_type in info_loadfn_dict.keys():
+        fun_load_info = info_loadfn_dict[info_type]
+    else:
+        fun_load_info = info_func 
     info_dict, keys_list = fun_load_info(info_dir, kl) 
     info_list_file = os.path.join(out_dir, 'uttinfo_text.list')
     opof = open(info_list_file, 'w')
