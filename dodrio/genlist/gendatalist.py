@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-02-08 17:25:21
 LastEditors: Yixiang Chen
-LastEditTime: 2025-03-28 10:10:02
+LastEditTime: 2025-04-07 11:35:36
 '''
 
 import os
@@ -218,6 +218,7 @@ def gen_datalist(supdir_list, outdir, featlist, check_func, prefix, subnum=50000
         for utt in out_dict.keys():
             if tmp_idx >=subnum:
                 tmp_idx = 0
+                subtabel_id += 1 
                 opsubt.close()
             if tmp_idx == 0:
                 subtable_file = os.path.join(sub_table_dir, prefix+'_sub_'+str(subtabel_id).rjust(6,'0')+ '.table')  
