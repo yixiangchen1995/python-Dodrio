@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-24 15:50:51
 LastEditors: Yixiang Chen
-LastEditTime: 2025-04-01 16:00:41
+LastEditTime: 2025-04-15 11:55:27
 '''
 
 #from . import tool
@@ -28,9 +28,9 @@ from dodrio.genlist.gendatalist import (
 )
 
 from dodrio.afeat.feat_extractor import (
-    extract_feat, get_utt2spk
+    extract_feat, get_utt2spk, extract_feat_multi, extract_feat_align
 )
 
 from dodrio.tools.load_data import (
-    load_data_from_line, load_feat_single, load_audio_single
+    load_data_from_line, load_feat_single, load_audio_single, load_data_from_line_align
 )

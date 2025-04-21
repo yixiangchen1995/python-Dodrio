@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-26 19:23:27
 LastEditors: Yixiang Chen
-LastEditTime: 2025-04-03 17:26:50
+LastEditTime: 2025-04-15 15:47:23
 '''
 
 
@@ -164,5 +164,36 @@ def load_data_from_line(infoline):
 
     return data_dict 
         
+def load_data_from_line_align(infoline):
+    spl = infoline.strip().split('|')
+    data_dict = {}
+    uttid = spl[0]
+    wavp, wstart, wend = spl[1], int(spl[2]), int(spl[3])
+    audio = load_audio_single(wavp, wstart, wend) 
+    spkid, text, language = spl[4], spl[5], spl[6]
+
+    phones, duration = spl[7], spl[8]
+    phones = phones.split()
+    duration = [int(xx) for xx in duration.split()]
+
+    data_dict['uttid'] = uttid
+    data_dict['audio'] = audio
+    data_dict['spkid'] = spkid
+    data_dict['text'] = text
+    data_dict['language'] = language
+    data_dict['phones'] = language
+    data_dict['duration'] = language
+
+    feat_type_num = (len(spl)- 9) // 5
+    for idx in range(feat_type_num):
+        beginid = 9 + idx*5 
+        featname = spl[beginid]
+        featpack = spl[beginid+1]
+        fstart, fend, fshape = int(spl[beginid+2]), int(spl[beginid+3]), spl[beginid+4]
+        fshape = [int(xx) for xx in fshape.split(',')]
+        feat_data = load_feat_single(featpack, fstart, fend, fshape)
+        data_dict[featname] = feat_data
+
+    return data_dict 
 
 

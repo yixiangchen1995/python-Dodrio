@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-02-08 17:25:21
 LastEditors: Yixiang Chen
-LastEditTime: 2025-04-07 11:35:36
+LastEditTime: 2025-04-15 16:58:48
 '''
 
 import os
@@ -160,6 +160,18 @@ def feat_dict_load(feat_dir, featname):
     keylist = ['packpath', 'start', 'end', 'shape' ]
     return info_dict, keylist 
 
+def align_dict_load(align_dir, featname='align'):
+    featinfo_file = os.path.join(align_dir, 'feat_info_'+ featname +'.list')
+    with open(featinfo_file, 'r') as ofif:
+        info_lines = ofif.readlines()
+    info_dict = {}
+    for line in info_lines:
+        spl = line.strip().split('|')
+        utt, packid, phone_list, phone_dur = spl[0], spl[1], spl[2], spl[3]
+        info_dict[utt] = [phone_list, phone_dur]
+    keylist = ['phones', 'duration']
+    return info_dict, keylist 
+
 def datadirProcess(datadir, featlist, check_func):
     all_keylist = []
     package_dir = os.path.join(datadir, 'pack_dir')
@@ -191,6 +203,51 @@ def datadirProcess(datadir, featlist, check_func):
             out_dict[utt] = outinfo_list
     return out_dict, all_keylist
 
+def datadirProcess_align(datadir, featlist, check_func):
+    all_keylist = []
+    package_dir = os.path.join(datadir, 'pack_dir')
+    wav_info_dict, kl1 = pack_dict_load(package_dir)
+    all_keylist.extend(kl1)
+   
+    align_flag = False
+    if 'align' in featlist:
+        align_flag = True
+        featlist.remove('align')
+        align_dir = os.path.join(datadir, 'align_dir')
+        align_dict, kl3 = align_dict_load(align_dir)
+        all_keylist.extend(kl3)
+
+    info_dir = os.path.join(datadir, 'info_dir')
+    info_dict, kl2 = info_dict_load(info_dir)
+    all_keylist.extend(kl2)
+    supfeat_dict = {}
+    kl_dict = {}
+
+    for featname in featlist:
+        feat_dir = os.path.join(datadir, featname+'_dir')
+        supfeat_dict[featname], kl_dict[featname] =  feat_dict_load(feat_dir, featname)
+        all_keylist.append('featname_'+featname)
+        all_keylist.extend(kl_dict[featname])
+    
+    out_dict = {}
+    intersection = wav_info_dict.keys() & info_dict.keys() 
+    if align_flag:
+        intersection = intersection & align_dict.keys() 
+    for featname in featlist:
+        intersection = intersection & supfeat_dict[featname].keys() 
+    
+    for utt in intersection:
+        outinfo_list = wav_info_dict[utt]
+        outinfo_list.extend(info_dict[utt])
+        if align_flag:
+            outinfo_list.extend(align_dict[utt])
+        for featname in featlist:
+            outinfo_list.append(featname)
+            outinfo_list.extend(supfeat_dict[featname][utt])
+        if check_func(outinfo_list):
+            out_dict[utt] = outinfo_list
+    return out_dict, all_keylist
+
 
 def check_func(outinfo_list):
     return True
@@ -214,7 +271,8 @@ def gen_datalist(supdir_list, outdir, featlist, check_func, prefix, subnum=50000
     if allsave_flag:
         oallt = open(all_list_file, 'w')
     for datadir in supdir_list:
-        out_dict, all_keylist = datadirProcess(datadir, featlist, check_func)
+        #out_dict, all_keylist = datadirProcess(datadir, featlist, check_func)
+        out_dict, all_keylist = datadirProcess_align(datadir, featlist, check_func)
         for utt in out_dict.keys():
             if tmp_idx >=subnum:
                 tmp_idx = 0
