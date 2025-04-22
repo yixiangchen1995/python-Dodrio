@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-26 19:12:18
 LastEditors: Yixiang Chen
-LastEditTime: 2025-04-15 15:41:07
+LastEditTime: 2025-04-21 15:55:04
 '''
 
 
@@ -193,11 +193,13 @@ def extract_feat_multi(extractor_func, featname_list, input_dir, out_dir_list, f
         
         positions = []
         outf_list = []
+        out_feat_path_list = []
         for ii in range(len(featname_list)):
             positions.append(0)
             featname = featname_list[ii]
             out_dir = out_dir_list[ii]
             out_feat_path = os.path.join(out_dir, packid+'.'+featname)
+            out_feat_path_list.append(out_feat_path)
             outf = open(out_feat_path, 'wb')
             outf_list.append(outf)
 
@@ -217,7 +219,8 @@ def extract_feat_multi(extractor_func, featname_list, input_dir, out_dir_list, f
 
                 byte_num = len(feat)* 4 # float 32 = 4 byte 
                 end_position = positions[ii]+byte_num 
-                feat_info = [utt, os.path.split(out_feat_path)[-1], str(positions[ii]), str(end_position), ','.join([str(xx) for xx in fshape])]
+                #feat_info = [utt, os.path.split(out_feat_path)[-1], str(positions[ii]), str(end_position), ','.join([str(xx) for xx in fshape])]
+                feat_info = [utt, os.path.split(out_feat_path_list[ii])[-1], str(positions[ii]), str(end_position), ','.join([str(xx) for xx in fshape])]
                 info_outline = '|'.join(feat_info) + '\n'
                 oinfo_out_list[ii].write(info_outline) 
 

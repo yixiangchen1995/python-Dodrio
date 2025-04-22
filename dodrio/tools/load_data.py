@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-26 19:23:27
 LastEditors: Yixiang Chen
-LastEditTime: 2025-04-15 15:47:23
+LastEditTime: 2025-04-21 16:09:43
 '''
 
 
@@ -181,8 +181,8 @@ def load_data_from_line_align(infoline):
     data_dict['spkid'] = spkid
     data_dict['text'] = text
     data_dict['language'] = language
-    data_dict['phones'] = language
-    data_dict['duration'] = language
+    data_dict['phones'] = phones
+    data_dict['duration'] = duration
 
     feat_type_num = (len(spl)- 9) // 5
     for idx in range(feat_type_num):
