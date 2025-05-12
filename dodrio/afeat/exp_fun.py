@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-27 09:59:30
 LastEditors: Yixiang Chen
-LastEditTime: 2025-03-28 11:52:37
+LastEditTime: 2025-04-29 17:33:45
 '''
 
 import numpy as np
@@ -84,4 +84,42 @@ class speech_token_extractor:
                                                   self.ort_session.get_inputs()[1].name: np.array([feat.shape[2]], dtype=np.int32)})[0].flatten().tolist()
             speech_token = np.array(speech_token)
         return speech_token
+
+
+from modelscope.pipelines import pipeline
+from modelscope.utils.constant import Tasks
+import librosa
+
+import os
+import sys
+class suppress_stdout_stderr(object):
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        self._original_stderr = sys.stderr
+        sys.stdout = open(os.devnull, 'w')
+        sys.stderr = open(os.devnull, 'w')
+    def __exit__(self, *_):
+        sys.stdout.close()
+        sys.stderr.close()
+        sys.stdout = self._original_stdout
+        sys.stderr = self._original_stderr
+
+class emotion2vec_extractor:
+    def __init__(self):
+        self.inference_pipeline = pipeline(
+            task=Tasks.emotion_recognition,
+            model="iic/emotion2vec_base_finetuned",
+            disable_update=True)
+    
+    def extractor(self, floatnpwav, utt, sample_rate=48000):
+        floatnpwav = librosa.resample(floatnpwav, orig_sr=sample_rate, target_sr=16000)
+        #with warnings.catch_warnings():
+        #    warnings.simplefilter('ignore')
+        with suppress_stdout_stderr():
+            rec_result = self.inference_pipeline(input=floatnpwav.astype(np.float32), granularity="utterance", extract_embedding=True)
+        scores = rec_result[0]['scores']
+        embedding = rec_result[0]['feats']
+        str_scores = [str(xx) for xx in scores]
+        str_scores = ','.join(str_scores)
+        return embedding, [str_scores]
 

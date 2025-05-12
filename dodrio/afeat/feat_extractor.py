@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-26 19:12:18
 LastEditors: Yixiang Chen
-LastEditTime: 2025-04-21 15:55:04
+LastEditTime: 2025-04-30 10:58:03
 '''
 
 
@@ -98,6 +98,55 @@ def extract_feat(extractor_func, featname, input_dir, out_dir, from_type, **para
             byte_num = len(feat)* 4 # float 32 = 4 byte 
             end_position = position+byte_num 
             feat_info = [utt, os.path.split(out_feat_path)[-1], str(position), str(end_position), ','.join([str(xx) for xx in fshape])]
+            info_outline = '|'.join(feat_info) + '\n'
+            oinfo_out.write(info_outline) 
+
+            position += byte_num
+        outf.close()
+    oinfo_out.close()
+
+def extract_feat_extrainfo(extractor_func, featname, input_dir, out_dir, from_type, **params):
+    os.makedirs(out_dir, exist_ok=True)
+    #data_dict = load_data_dict(input_dir, from_type)
+    if from_type=='parquet':
+        suffix = '.parquet'
+        infolistf = ''
+    else:
+        suffix = '.pack'
+        infolistf = os.path.join(input_dir, 'uttinfo.list')
+    packlist = get_file_list(input_dir, suffix)
+    packlist.sort()
+    feat_info_file = os.path.join(out_dir, 'feat_info_'+featname+'.list')
+    oinfo_out = open(feat_info_file, 'w')
+
+    for idx in range(len(packlist)):
+        packfile = packlist[idx]
+        packid = os.path.split(packfile)[-1].split(suffix)[0]
+        uttdict = load_pack_audio_data(packfile, infolistf, return_sr = False)
+        
+        out_feat_path = os.path.join(out_dir, packid+'.'+featname)
+        outf = open(out_feat_path, 'wb')
+        position = 0
+        for utt in tqdm(uttdict.keys(), desc=f'{packid} Processing'): 
+            wavdata = uttdict[utt]
+            try:
+                feat, extrainfo = extractor_func(wavdata, utt, **params)
+            except:
+                feat = None
+                extrainfo = ['0']
+            if feat is None:
+                feat = np.array([0]).astype(np.float32) # shape is 1
+            feat = feat.astype(np.float32)
+            fshape = feat.shape
+            feat = np.reshape(feat, -1)
+
+            byte_feat = bytes(feat)
+            outf.write(byte_feat)
+
+            byte_num = len(feat)* 4 # float 32 = 4 byte 
+            end_position = position+byte_num 
+            feat_info = [utt, os.path.split(out_feat_path)[-1], str(position), str(end_position), ','.join([str(xx) for xx in fshape])]
+            feat_info.extend(extrainfo)
             info_outline = '|'.join(feat_info) + '\n'
             oinfo_out.write(info_outline) 
 

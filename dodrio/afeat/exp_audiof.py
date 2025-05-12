@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-04-09 14:56:10
 LastEditors: Yixiang Chen
-LastEditTime: 2025-04-10 17:59:03
+LastEditTime: 2025-04-24 15:47:34
 '''
 
 from librosa.filters import mel as librosa_mel_fn
@@ -172,6 +172,53 @@ def extract_mfe(floatnpwav, utt, meltype='torch', f0type='pyworld', energytype='
     mel_spec = mel_spec.squeeze(0).cpu().numpy().astype(np.float32)
 
     return pitch, energy, mel_spec
+
+################# Compute mean std ###############
+
+from dodrio.tools.load_data import load_feat_single
+from sklearn.preprocessing import StandardScaler
+import json
+from tqdm import tqdm
+
+def load_feat_from_line(line, featname):
+    spl = line.strip().split('|')
+    uidx = -1
+    for idx in range(len(spl)):
+        if spl[idx] == featname:
+            uidx = idx
+            break
+    if uidx == -1:
+        print("There is no ", featname)
+        return 0
+    fshape = [int(xx) for xx in spl[uidx+4].split(',')]
+    feat = load_feat_single(spl[uidx+1], int(spl[uidx+2]), int(spl[uidx+3]), fshape)
+    return feat
+
+def getStMag(inpfile, featname):
+    feat_scaler = StandardScaler()
+    with open(inpfile, 'r') as oif:
+        lines = oif.readlines()
+    for line in tqdm(lines):
+        feat = load_feat_from_line(line, featname)
+        if len(feat) > 0:
+            feat_scaler.partial_fit(feat.reshape((-1, 1)))
+    try:
+        feat_mean = feat_scaler.mean_[0]
+        feat_std = feat_scaler.scale_[0]
+    except:
+        feat_mean = 0
+        feat_std = 1
+    return feat_mean, feat_std
+
+def saveStMag(inpfile, outfile, featname):
+    feat_mean, feat_std = getStMag(inpfile, featname)
+    outdict = {
+        "mean": feat_mean,
+        "std": feat_std 
+    }
+    with open(outfile, "w", encoding="utf-8") as f:
+        json.dump(outdict, f, indent=2, ensure_ascii=False)
+
 
 
 
