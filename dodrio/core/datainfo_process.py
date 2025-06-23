@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-24 15:18:58
 LastEditors: Yixiang Chen
-LastEditTime: 2025-04-03 17:36:38
+LastEditTime: 2025-05-13 17:30:19
 '''
 
 import os
@@ -96,3 +96,16 @@ def gen_infodir(input_dir, info_dir, out_dir, info_type, kl=['text'], lang='nola
                 outline = '|'.join(outlist) + '\n'
                 opof.write(outline)
     opof.close()
+
+def load_info_dict_generalfile(use_file, kl):
+    info_dict = {}
+    with open(use_file, 'r') as ouf:
+        lines = ouf.readlines()
+    for line in lines:
+        spl = line.strip().split('|')
+        wavp, spk, lang, text = spl[0], spl[1], spl[2], spl[3]
+        uttid = os.path.split(wavp)[-1].split('.')[0]
+        useinfo = {'id':uttid, 'speaker':spk, 'text':text, 'language':lang}
+        info_dict[uttid] = useinfo
+    keys_list = ['id', 'speaker', 'text', 'language']
+    return info_dict, keys_list

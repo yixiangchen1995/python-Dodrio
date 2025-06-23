@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-02-08 17:25:21
 LastEditors: Yixiang Chen
-LastEditTime: 2025-04-15 16:58:48
+LastEditTime: 2025-05-26 17:38:30
 '''
 
 import os
@@ -208,11 +208,13 @@ def datadirProcess_align(datadir, featlist, check_func):
     package_dir = os.path.join(datadir, 'pack_dir')
     wav_info_dict, kl1 = pack_dict_load(package_dir)
     all_keylist.extend(kl1)
+
+    tmp_featlist = featlist.copy()
    
     align_flag = False
-    if 'align' in featlist:
+    if 'align' in tmp_featlist:
         align_flag = True
-        featlist.remove('align')
+        tmp_featlist.remove('align')
         align_dir = os.path.join(datadir, 'align_dir')
         align_dict, kl3 = align_dict_load(align_dir)
         all_keylist.extend(kl3)
@@ -223,7 +225,7 @@ def datadirProcess_align(datadir, featlist, check_func):
     supfeat_dict = {}
     kl_dict = {}
 
-    for featname in featlist:
+    for featname in tmp_featlist:
         feat_dir = os.path.join(datadir, featname+'_dir')
         supfeat_dict[featname], kl_dict[featname] =  feat_dict_load(feat_dir, featname)
         all_keylist.append('featname_'+featname)
@@ -233,7 +235,7 @@ def datadirProcess_align(datadir, featlist, check_func):
     intersection = wav_info_dict.keys() & info_dict.keys() 
     if align_flag:
         intersection = intersection & align_dict.keys() 
-    for featname in featlist:
+    for featname in tmp_featlist:
         intersection = intersection & supfeat_dict[featname].keys() 
     
     for utt in intersection:
@@ -241,7 +243,7 @@ def datadirProcess_align(datadir, featlist, check_func):
         outinfo_list.extend(info_dict[utt])
         if align_flag:
             outinfo_list.extend(align_dict[utt])
-        for featname in featlist:
+        for featname in tmp_featlist:
             outinfo_list.append(featname)
             outinfo_list.extend(supfeat_dict[featname][utt])
         if check_func(outinfo_list):

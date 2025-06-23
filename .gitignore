@@ -1,3 +1,4 @@
 build/*
 dist/*
 dodrio.egg-info/*
+**/.DS_Store
