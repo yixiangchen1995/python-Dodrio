@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-02-08 17:25:21
 LastEditors: Yixiang Chen
-LastEditTime: 2025-05-26 17:38:30
+LastEditTime: 2025-08-18 16:12:27
 '''
 
 import os
@@ -210,7 +210,13 @@ def datadirProcess_align(datadir, featlist, check_func):
     all_keylist.extend(kl1)
 
     tmp_featlist = featlist.copy()
-   
+
+    info_dir = os.path.join(datadir, 'info_dir')
+    info_dict, kl2 = info_dict_load(info_dir)
+    all_keylist.extend(kl2)
+    supfeat_dict = {}
+    kl_dict = {}
+
     align_flag = False
     if 'align' in tmp_featlist:
         align_flag = True
@@ -218,12 +224,6 @@ def datadirProcess_align(datadir, featlist, check_func):
         align_dir = os.path.join(datadir, 'align_dir')
         align_dict, kl3 = align_dict_load(align_dir)
         all_keylist.extend(kl3)
-
-    info_dir = os.path.join(datadir, 'info_dir')
-    info_dict, kl2 = info_dict_load(info_dir)
-    all_keylist.extend(kl2)
-    supfeat_dict = {}
-    kl_dict = {}
 
     for featname in tmp_featlist:
         feat_dir = os.path.join(datadir, featname+'_dir')
