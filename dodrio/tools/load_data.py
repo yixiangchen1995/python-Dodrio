@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-26 19:23:27
 LastEditors: Yixiang Chen
-LastEditTime: 2025-04-21 16:09:43
+LastEditTime: 2025-09-26 11:46:14
 '''
 
 
@@ -119,6 +119,25 @@ def load_pack_audio_data(packp, infolistf='', return_sr = False):
                 outdict[utt] = wav
     return outdict
 
+######################## Load Text #########################
+def load_textinfo_data(infolist):
+    with open(infolist, 'r') as oifl:
+        lines = oifl.readlines()
+    keys = lines[0].strip().split('|')
+    id_idx = 0
+    for idx in range(len(keys)):
+        if keys[idx] == 'id':
+            id_idx = idx
+            break
+    info_dict = {}
+    for idx in range(1, len(lines)):
+        line = lines[idx]
+        spl = line.strip().split('|')
+        info_dict[spl[id_idx]] = {}
+        for idx in range(len(keys)):
+            kk = keys[idx]
+            info_dict[spl[id_idx]][kk] = spl[idx]
+    return info_dict
 
 ####################### Load single ######################
 

@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-26 19:12:18
 LastEditors: Yixiang Chen
-LastEditTime: 2025-04-30 10:58:03
+LastEditTime: 2025-09-28 16:09:37
 '''
 
 
@@ -18,6 +18,7 @@ from dodrio.tools.load_data import load_data_dict, load_pack_audio_data
 
 from dodrio.afeat.exp_load import align_jsondict, align_jsondict_aa, align_jsondict_exc
 
+import pyarrow.parquet as pq
 
 def get_file_list(inp_dir, suffix='.wav'):
     itm = []
@@ -154,6 +155,56 @@ def extract_feat_extrainfo(extractor_func, featname, input_dir, out_dir, from_ty
         outf.close()
     oinfo_out.close()
 
+def extract_bert_extrainfo(extractor_func, featname, input_dir, out_dir, from_type, **params):
+    os.makedirs(out_dir, exist_ok=True)
+    #uttinfo_list = os.path.join(input_dir, 'uttinfo_text.list')
+    suffix = '.info' 
+    packlist = get_file_list(input_dir, suffix)
+    packlist.sort()
+
+    feat_info_file = os.path.join(out_dir, 'feat_info_'+featname+'.list')
+    oinfo_out = open(feat_info_file, 'w')
+
+    for pidx in range(len(packlist)):
+        info_parquet_file = packlist[pidx] 
+        packid = os.path.split(info_parquet_file)[-1].split(suffix)[0]
+
+        out_feat_path = os.path.join(out_dir, packid+'.'+featname)
+        outf = open(out_feat_path, 'wb')
+        position = 0
+
+        df = pq.read_table(info_parquet_file).to_pandas()
+        #num_utts_per_parquet = len(df)
+        for idx in tqdm(range(len(df)), desc=f'{packid} Processing'):
+            if df.iloc[idx]['id'] == None:
+                continue
+            utt = df.iloc[idx]['id']
+            text = df.iloc[idx]['text'] 
+
+            try:
+                feat, extrainfo = extractor_func(text, **params)
+            except:
+                feat = None
+                extrainfo = ['0']
+            if feat is None:
+                feat = np.array([0]).astype(np.float32) # shape is 1
+            feat = feat.astype(np.float32)
+            fshape = feat.shape
+            feat = np.reshape(feat, -1)
+
+            byte_feat = bytes(feat)
+            outf.write(byte_feat)
+
+            byte_num = len(feat)* 4 # float 32 = 4 byte 
+            end_position = position+byte_num 
+            feat_info = [utt, os.path.split(out_feat_path)[-1], str(position), str(end_position), ','.join([str(xx) for xx in fshape])]
+            feat_info.extend(extrainfo)
+            info_outline = '|'.join(feat_info) + '\n'
+            oinfo_out.write(info_outline) 
+
+            position += byte_num
+        outf.close()
+    oinfo_out.close()
 
 def save_parquet_align(wavinfo_dict, savelist, parquet_fn):
     word_start = [wavinfo_dict[x][0] for x in savelist]
