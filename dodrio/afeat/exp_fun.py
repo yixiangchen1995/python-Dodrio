@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-27 09:59:30
 LastEditors: Yixiang Chen
-LastEditTime: 2025-11-04 10:44:51
+LastEditTime: 2025-11-11 15:41:54
 '''
 
 import numpy as np
@@ -150,8 +150,8 @@ class BertInfer():
         hid_feat = hid_feat.detach().cpu().numpy()
         return hid_feat, ['0']
 
-from core.package_base import package2wav
-from tools.load_data import load_textinfo_data
+from dodrio.core.package_base import package2wav
+from dodrio.tools.load_data import load_textinfo_data
 
 import re
 from pypinyin import lazy_pinyin, Style

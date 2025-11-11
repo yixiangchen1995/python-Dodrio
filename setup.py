@@ -5,12 +5,12 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-24 15:57:41
 LastEditors: Yixiang Chen
-LastEditTime: 2025-11-04 10:40:18
+LastEditTime: 2025-11-11 15:42:09
 '''
 
 from setuptools import setup, find_packages
 
-VERSION = '0.3.7' 
+VERSION = '0.3.8' 
 DESCRIPTION = 'Data Package for TTS '
 #LONG_DESCRIPTION = 'Data Package for TTS with a slightly longer description'
 LONG_DESCRIPTION = open("README.md", encoding="utf-8").read()
