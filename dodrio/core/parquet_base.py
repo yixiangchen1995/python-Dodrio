@@ -1,11 +1,11 @@
 '''
-FilePath: /base-dodrio/dodrio/core/parquet_base.py
+FilePath: /python-Dodrio/dodrio/core/parquet_base.py
 Descripttion: 
 Author: Yixiang Chen
 version: 
 Date: 2025-03-24 11:26:49
 LastEditors: Yixiang Chen
-LastEditTime: 2025-03-24 16:57:57
+LastEditTime: 2026-03-06 17:36:57
 '''
 
 import os
@@ -34,6 +34,26 @@ def save_parquet(wavinfo_dict, savelist, parquet_fn):
     df['audio_data'] = audio_list
     df.to_parquet(parquet_fn)
     print(f"{parquet_fn} had be saved")
+
+def save_parquet_oss_version(wavinfo_dict, savelist, parquet_fn):
+    #print("savelist is ", savelist)
+    sr_list = [wavinfo_dict[x][0] for x in savelist]
+    dtype_list = [wavinfo_dict[x][1] for x in savelist]
+    audio_list = [wavinfo_dict[x][2] for x in savelist]
+    df = pd.DataFrame()
+    df['utt'] = savelist
+    df['sample_rate'] = sr_list
+    df['dtype'] = dtype_list
+    df['audio_data'] = audio_list
+    #df.to_parquet(parquet_fn)
+    from io import BytesIO
+    buf = BytesIO()
+    df.to_parquet(buf, engine='pyarrow', index=False)
+    data = buf.getvalue()
+    with open(parquet_fn, 'wb') as f:
+        f.write(data)
+    print(f"{parquet_fn} had be saved")
+
 
 def get_mp3_metainfo(mp3file):
     tag = TinyTag.get(mp3file)

@@ -5,12 +5,12 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-24 15:57:41
 LastEditors: Yixiang Chen
-LastEditTime: 2025-11-11 15:42:09
+LastEditTime: 2026-03-09 16:30:26
 '''
 
 from setuptools import setup, find_packages
 
-VERSION = '0.3.8' 
+VERSION = '0.3.9' 
 DESCRIPTION = 'Data Package for TTS '
 #LONG_DESCRIPTION = 'Data Package for TTS with a slightly longer description'
 LONG_DESCRIPTION = open("README.md", encoding="utf-8").read()
@@ -33,7 +33,8 @@ setup(
             'pyarrow',
             'scipy',
             'tqdm',
-            'librosa'
+            'librosa',
+            'tinytag'
         ], # add any additional packages that ## add tinytag package
         
         keywords=['python', 'first package'],

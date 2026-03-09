@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-02-08 17:25:21
 LastEditors: Yixiang Chen
-LastEditTime: 2025-08-18 16:12:27
+LastEditTime: 2025-12-12 16:54:51
 '''
 
 import os
@@ -291,7 +291,8 @@ def gen_datalist(supdir_list, outdir, featlist, check_func, prefix, subnum=50000
             if spk not in spkdict.keys():
                 spkdict[spk] = spkid
                 spkid += 1
-            outlist[4] = str(spkid)
+            #outlist[4] = str(spkid)
+            outlist[4] = str(spkdict[spk])
             
             outline = '|'.join(outlist) + '\n'
             opsubt.write(outline)
@@ -312,4 +313,4 @@ def gen_datalist(supdir_list, outdir, featlist, check_func, prefix, subnum=50000
     with open(spk_id_file, 'w', encoding="utf-8") as opf:
         json.dump(spkdict, opf, indent=2, ensure_ascii=False)
     
-        
+
