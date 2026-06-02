@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-02-08 17:25:21
 LastEditors: Yixiang Chen
-LastEditTime: 2025-12-12 16:54:51
+LastEditTime: 2026-03-09 20:13:45
 '''
 
 import os
@@ -246,7 +246,8 @@ def datadirProcess_align(datadir, featlist, check_func):
         for featname in tmp_featlist:
             outinfo_list.append(featname)
             outinfo_list.extend(supfeat_dict[featname][utt])
-        if check_func(outinfo_list):
+        #if check_func(outinfo_list):
+        if check_func(outinfo_list, utt):
             out_dict[utt] = outinfo_list
     return out_dict, all_keylist
 

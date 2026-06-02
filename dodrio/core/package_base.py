@@ -143,7 +143,7 @@ def gen_package(wav_dir, package_dir, mid_name='', target_sample_rate=48000, fil
         wavinfo_dict ={}
         for utt in tqdm(uttlist[process_max_num * tid : process_max_num * (tid+1)], desc=f'Turn{str(tid)}LoadAudio'):
             wavpath = wavdict[utt]
-            int16_audio = load_audio_content(utt, wavpath, target_sample_rate)
+            int16_audio = load_audio_content(utt, wavpath, target_sample_rate, file_type)
             wavinfo_dict[utt] = int16_audio
 
         prefix = file_type
