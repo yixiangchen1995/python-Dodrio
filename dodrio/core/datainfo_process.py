@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-24 15:18:58
 LastEditors: Yixiang Chen
-LastEditTime: 2025-05-13 17:30:19
+LastEditTime: 2026-06-30 15:20:05
 '''
 
 import os
@@ -78,7 +78,11 @@ def gen_infodir(input_dir, info_dir, out_dir, info_type, kl=['text'], lang='nola
             keydata = []
             for utt in uttlist:
                 if utt in info_dict.keys():
-                    keydata.append(info_dict[utt][kk])
+                    try:
+                        keydata.append(info_dict[utt][kk])
+                    except KeyError:
+                        keydata.append(None)
+                        print(f'There is no {utt} info for {kk}')
                 else:
                     keydata.append(None)
                     print(f'There is no {utt} info for {kk}')
@@ -89,7 +93,12 @@ def gen_infodir(input_dir, info_dir, out_dir, info_type, kl=['text'], lang='nola
         print(f'{packid}.info had been Saved')
         for utt in uttlist:
             if utt in info_dict.keys():
-                outlist = [str(info_dict[utt][kk]) if info_dict[utt][kk] else BLANK_STRING for kk in keys_list]
+                #outlist = [str(info_dict[utt][kk]) if info_dict[utt][kk] else BLANK_STRING for kk in keys_list]
+                try:
+                    outlist = [str(info_dict[utt][kk]) if info_dict[utt][kk] else BLANK_STRING for kk in keys_list]
+                except KeyError:
+                    print(f'key error {utt}')
+                    continue
                 outlist.append(str(packid+'.info'))
                 if (lang != 'nolang') and ('language' not in keys_list):
                     outlist.append(lang)

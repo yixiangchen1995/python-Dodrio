@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-24 15:50:51
 LastEditors: Yixiang Chen
-LastEditTime: 2026-03-09 16:13:26
+LastEditTime: 2026-06-29 14:28:24
 '''
 
 #from . import tool
@@ -28,7 +28,7 @@ from dodrio.genlist.gendatalist import (
 )
 
 from dodrio.afeat.feat_extractor import (
-    extract_feat, get_utt2spk, extract_feat_multi, extract_feat_align, extract_feat_extrainfo, extract_bert_extrainfo
+    extract_feat, get_utt2spk, extract_feat_multi, extract_feat_align, extract_feat_extrainfo, extract_bert_extrainfo, extract_feat_tpool
 )
 
 #from dodrio.afeat.exp_fun import gen_mfadir

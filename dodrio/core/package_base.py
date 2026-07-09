@@ -10,7 +10,7 @@ import math
 from scipy.io import wavfile
 import pyarrow.parquet as pq
 
-from dodrio.core.utils import set_wavlist
+from dodrio.core.utils import set_wavlist, set_wavlist_predir
 
 ############## Parquet to Package ###############   
 
@@ -114,7 +114,18 @@ def load_mp3(mp3path, target_sample_rate=48000):
 
 def load_audio_content(utt, audiopath, target_sample_rate, file_type='wav'):
     if file_type == 'wav':
-        sr, audio = wavfile.read(audiopath)
+        #sr, audio = wavfile.read(audiopath)
+        try:
+            sr, audio = wavfile.read(audiopath)
+        except FileNotFoundError:
+            print(f"⚠️ 文件不存在，跳过: {audiopath}")
+            return None
+        except ValueError as e:
+            print(f"⚠️ 文件格式错误或损坏，跳过: {audiopath} | 错误: {e}")
+            return None
+        except Exception as e:
+            print(f"❌ 未知错误，跳过: {audiopath} | 错误类型: {type(e).__name__}, 详情: {e}")
+            return None
         if len(audio)<1:
             print(f"{utt} wavfile is None")
             return None
@@ -130,9 +141,12 @@ def load_audio_content(utt, audiopath, target_sample_rate, file_type='wav'):
         return None
     return int16_audio 
 
-def gen_package(wav_dir, package_dir, mid_name='', target_sample_rate=48000, file_type='wav', num_utts_per_parquet=2000, process_max_num=10000):
+def gen_package(wav_dir, package_dir, mid_name='', target_sample_rate=48000, file_type='wav', num_utts_per_parquet=2000, process_max_num=10000, use_pre_dir=False, pre_dir='merge'):
     os.makedirs(package_dir, exist_ok=True)
-    wavdict, uttlist = set_wavlist(wav_dir, file_type)
+    if use_pre_dir:
+        wavdict, uttlist = set_wavlist_predir(wav_dir, file_type, pre_dir=pre_dir)
+    else:
+        wavdict, uttlist = set_wavlist(wav_dir, file_type)
 
     pack2utt = {}
     turn_num = math.ceil(len(uttlist) / process_max_num)

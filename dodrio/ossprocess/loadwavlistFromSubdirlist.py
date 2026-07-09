@@ -1,76 +1,4 @@
-'''
-FilePath: /python-Dodrio/dodrio/core/utils.py
-Descripttion: 
-Author: Yixiang Chen
-version: 
-Date: 2025-03-24 11:51:05
-LastEditors: Yixiang Chen
-LastEditTime: 2026-06-29 19:27:50
-'''
-
 import os
-from tqdm import tqdm
-
-def get_file_list(inp_dir, suffix='.wav'):
-    itm = []
-    for home, dirs, files in os.walk(inp_dir):
-        pppp = list( map(lambda fname: home + '/' + fname,
-            list( filter( lambda filename: os.path.splitext(filename)[1] == suffix,
-            files) ) ) )
-        itm.extend(pppp)
-    file_list = itm
-    return file_list
-
-def get_file_list_tail(inp_dir, suffix='_text.txt'):
-    itm = []
-    for home, dirs, files in os.walk(inp_dir):
-        pppp = list( map(lambda fname: home + '/' + fname,
-            list( filter( lambda filename: filename[-len(suffix):] == suffix,
-            files) ) ) )
-        itm.extend(pppp)
-    file_list = itm
-    return file_list
-
-
-def utt_name_tran(basename, rm_prefix=False):
-    #return basename
-    if rm_prefix: 
-        return '_'.join(basename.split('_')[1:])
-    else:
-        return basename
-
-def set_wavlist(wav_dir, file_type, rm_prefix=False):
-    suffix = '.'+file_type
-    wavlist = get_file_list(wav_dir, suffix)
-    wavdict = {}
-    uttlist = []
-    for wavpath in tqdm(wavlist, desc='SetList'):
-        (path, filename) = os.path.split(wavpath)
-        basename = filename.split(suffix)[0]
-        uttname = utt_name_tran(basename, rm_prefix)
-        wavdict[uttname] = wavpath
-        uttlist.append(uttname)
-    return wavdict, uttlist
-
-def set_wavlist_predir(wav_dir, file_type, rm_prefix=False, pre_dir='merge'):
-    suffix = '.'+file_type
-    wavlist = get_file_list(wav_dir, suffix)
-    wavdict = {}
-    uttlist = []
-    for wavpath in tqdm(wavlist, desc='SetList'):
-        (path, filename) = os.path.split(wavpath)
-        _, now_pre_dir = os.path.split(path)
-        if now_pre_dir != pre_dir:
-            continue
-        basename = filename.split(suffix)[0]
-        uttname = utt_name_tran(basename, rm_prefix)
-        wavdict[uttname] = wavpath
-        uttlist.append(uttname)
-    return wavdict, uttlist
-
-
-#####################################################
-
 import pandas as pd
 from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -161,42 +89,41 @@ def process_single_subdir_smart(args):
     except Exception as e:
         # print(f"Error: {e}")
         return {}, []
-    
 
-def set_wavlist_dirlist(wav_dir, file_type, rm_prefix=False):
+def process_audio_directory_no_root(input_dir: str, max_workers: int = None, test_count: int = None) -> tuple[dict, list]:
     """
     无需 root_dir 的版本。
     直接利用 txt 中的子目录绝对路径和 CSV 内容智能拼接。
     """
-    list_file_path = os.path.join(wav_dir, "all_paths.txt")
-    max_workers = 16
-    test_count = None
-
+    #print(f"正在读取子目录列表: {list_file_path} ...")
+    list_file_path = os.path.join(input_dir, "all_paths.txt")
+    
     with open(list_file_path, 'r', encoding='utf-8') as f:
         subdir_list = [line.strip() for line in f if line.strip()]
-
+        
     if not subdir_list:
         raise ValueError("子目录列表为空")
-
+        
     if test_count is not None:
         subdir_list = subdir_list[:test_count]
         print(f"[测试模式]仅处理前 {len(subdir_list)} 个目录")
     else:
         print(f"[全量模式]共加载 {len(subdir_list)} 个子目录路径")
-
+        
     tasks = subdir_list # 直接传递子目录绝对路径字符串
-
+    
     if max_workers is None:
         max_workers = multiprocessing.cpu_count()
-
+        
     final_dict = {}
     final_list = []
     processed_count = 0
-
+    
     start_time = time.time()
+    
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         future_to_info = {executor.submit(process_single_subdir_smart, task): i for i, task in enumerate(tasks)}
-
+        
         for future in as_completed(future_to_info):
             try:
                 res_dict, res_list = future.result()
@@ -209,8 +136,35 @@ def set_wavlist_dirlist(wav_dir, file_type, rm_prefix=False):
             except Exception as e:
                 idx = future_to_info[future]
                 print(f"任务 {idx} 失败: {e}")
-
+                
     end_time = time.time()
     print(f"\n处理完成！耗时: {end_time - start_time:.2f} 秒, 有效文件: {len(final_list)}")
-
+    
     return final_dict, final_list
+
+if __name__ == "__main__":
+    INPUT_DIR = "/home/deepspeed/workdir/20260622_data_process/oridatadirlist_save/test2dir" 
+    
+    try:
+        # 测试模式
+        test_dict, test_list = process_audio_directory_no_root(
+            input_dir=INPUT_DIR,
+            max_workers=16,
+            test_count=None
+        )
+        
+        if test_list:
+            print("\n--- 验证 ---")
+            k = test_list[0]
+            v = test_dict[k]
+            print(f"Key: {k}")
+            print(f"Path: {v}")
+            print(f"len test_list: {len(test_list)}")
+            if os.path.exists(v):
+                print("✅ 成功！无需 root_dir 也能正确定位。")
+            else:
+                print("❌ 文件不存在，请检查路径逻辑。")
+                
+    except Exception as e:
+        import traceback
+        traceback.print_exc()

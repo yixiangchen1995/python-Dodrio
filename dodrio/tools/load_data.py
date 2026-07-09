@@ -5,7 +5,7 @@ Author: Yixiang Chen
 version: 
 Date: 2025-03-26 19:23:27
 LastEditors: Yixiang Chen
-LastEditTime: 2025-09-26 11:46:14
+LastEditTime: 2026-06-26 17:39:52
 '''
 
 
@@ -78,7 +78,7 @@ def audiotran(data, atype, dtype):
         wav, sr = librosa.load(BytesIO(data))
         return wav
 
-def load_pack_audio_data(packp, infolistf='', return_sr = False):
+def load_pack_audio_data_old(packp, infolistf='', return_sr = False):
     ftype = os.path.split(packp)[-1].split('.')[-1]
     assert ftype in ['parquet', 'pack']
     audio_type = os.path.split(packp)[-1].split('_')[0]
@@ -117,6 +117,97 @@ def load_pack_audio_data(packp, infolistf='', return_sr = False):
                 outdict[utt] = [wav,48000]
             else:
                 outdict[utt] = wav
+    return outdict
+
+def load_pack_audio_data(packp, infolistf='', return_sr=False):
+    ftype = os.path.split(packp)[-1].split('.')[-1]
+    assert ftype in ['parquet', 'pack'], f"Unsupported file type: {ftype}"
+    
+    audio_type = os.path.split(packp)[-1].split('_')[0]
+    assert audio_type in ['wav', 'mp3'], f"Unsupported audio type: {audio_type}"
+    
+    outdict = {}
+    
+    if ftype == 'parquet':
+        df = pq.read_table(packp).to_pandas()
+        for idx in tqdm(range(len(df)), desc=f'Loading parquet'):
+            utt = df.iloc[idx]['utt']
+            sr = df.iloc[idx]['sample_rate']
+            dtype = df.iloc[idx]['dtype']
+            audio = df.iloc[idx]['audio_data']
+            wav = audiotran(audio, audio_type, dtype)
+            if return_sr:
+                outdict[utt] = [wav, sr]
+            else:
+                outdict[utt] = wav
+    else:
+        # --- 优化开始：针对 .pack 文件 ---
+        
+        # 1. 读取 info_list
+        info_file = os.path.join(infolistf)
+        with open(info_file, 'r') as iff:
+            info_list = iff.readlines()
+            
+        packname = os.path.split(packp)[-1]
+        
+        # 2. 【核心优化】一次性将整个 pack 文件读入内存
+        # 使用 'rb' 模式读取所有字节
+        with open(packp, 'rb') as f:
+            full_pack_data = f.read()
+            
+        # 获取文件大小用于可选的边界检查（防止 info 中的 end 超出文件实际大小）
+        file_size = len(full_pack_data)
+
+        # 3. 在内存中根据 info_list 提取数据
+        # 注意：如果 info_list 非常大，可以考虑先过滤出属于当前 packname 的行，减少循环次数
+        # 这里保持原有逻辑结构，但去除了内部的文件 I/O
+        
+        #for info in tqdm(info_list, desc=f'Loading pack {packname}'):
+        for info in info_list:
+            info = info.strip() # 去除可能的换行符
+            if not info:
+                continue
+                
+            parts = info.split('|')
+            if len(parts) != 4:
+                continue # 跳过格式错误的行
+                
+            utt, pf, start_str, end_str = parts
+            
+            # 只处理属于当前 pack 文件的条目
+            if pf != packname:
+                continue
+            
+            try:
+                start = int(start_str)
+                end = int(end_str)
+            except ValueError:
+                continue # 跳过无法解析坐标的行
+
+            # 边界检查（可选，但推荐）
+            if start < 0 or end > file_size or start >= end:
+                # print(f"Warning: Invalid range for {utt}: [{start}, {end}] in file of size {file_size}")
+                continue
+
+            # 3.1 【核心优化】从内存 bytes 中切片，而不是从磁盘读取
+            # data 是一个 bytes 对象
+            data = full_pack_data[start:end]
+            
+            # 3.2 转换为 numpy 数组
+            # 注意：np.frombuffer 返回的是只读数组，如果需要修改 wav，建议 copy()
+            # 原代码没有 copy，这里保持一致。如果后续有 inplace 操作，请改为 np.frombuffer(data, dtype=np.int16).copy()
+            wav = np.frombuffer(data, dtype=np.int16)
+            
+            # 归一化
+            wav = wav / 32768.0
+            
+            if return_sr:
+                outdict[utt] = [wav, 48000]
+            else:
+                outdict[utt] = wav
+                
+        # --- 优化结束 ---
+
     return outdict
 
 ######################## Load Text #########################

@@ -107,6 +107,139 @@ def extract_feat(extractor_func, featname, input_dir, out_dir, from_type, **para
         outf.close()
     oinfo_out.close()
 
+
+from concurrent.futures import ThreadPoolExecutor
+from queue import Queue
+
+def extract_feat_tpool(extractor_func, featname, input_dir, out_dir, from_type, io_workers=4, queue_maxsize=5, **params):
+    """
+    :param io_workers: 用于加载数据的并发线程数。建议设置为 4-8，取决于磁盘IO性能。
+    :param queue_maxsize: 队列最大长度。控制预加载的数据量，防止内存溢出。
+                          如果每个pack很大，设小一点(2-3)；如果很小，可以设大一点(10+)。
+    """
+    os.makedirs(out_dir, exist_ok=True)
+    
+    if from_type == 'parquet':
+        suffix = '.parquet'
+        infolistf = ''
+    else:
+        suffix = '.pack'
+        infolistf = os.path.join(input_dir, 'uttinfo.list')
+        
+    packlist = get_file_list(input_dir, suffix)
+    packlist.sort()
+    
+    feat_info_file = os.path.join(out_dir, 'feat_info_' + featname + '.list')
+    
+    # 创建线程安全队列
+    # maxsize 限制内存中同时存在的“待处理”数据包数量
+    data_queue = Queue(maxsize=queue_maxsize)
+    
+    # 标记任务结束的信号
+    SENTINEL = None
+
+    # --- 1. 定义生产者函数 (仅负责加载数据) ---
+    def load_worker(packfile):
+        try:
+            packid = os.path.split(packfile)[-1].split(suffix)[0]
+            # 这里执行耗时的 I/O 操作
+            uttdict = load_pack_audio_data(packfile, infolistf, return_sr=False)
+            
+            # 将加载好的数据放入队列
+            # 如果队列满了，这里会阻塞，直到消费者取走数据，从而自动控制内存使用
+            data_queue.put((packid, uttdict))
+        except Exception as e:
+            print(f"Error loading {packfile}: {e}")
+            # 即使出错也放一个 None 或者跳过，这里简单处理为跳过，实际需根据业务逻辑调整
+            # 为了保持计数对齐，最好还是放入某种错误标记，这里简化处理
+            pass
+
+    # --- 2. 启动生产者线程池 ---
+    with ThreadPoolExecutor(max_workers=io_workers) as executor:
+        # 提交所有加载任务
+        # 注意：submit 是非阻塞的，它会迅速将所有任务扔给线程池
+        futures = [executor.submit(load_worker, pf) for pf in packlist]
+        
+        # --- 3. 消费者逻辑 (主线程执行 GPU 计算和写入) ---
+        # 主线程现在变成了消费者，从队列取数据，然后做 GPU 计算
+        
+        with open(feat_info_file, 'w') as oinfo_out:
+            total_packs = len(packlist)
+            processed_count = 0
+            
+            # 使用 tqdm 监控整体进度
+            pbar = tqdm(total=total_packs, desc="GPU Processing & Writing")
+            
+            while processed_count < total_packs:
+                # 从队列获取数据。如果队列为空，这里会阻塞等待生产者放入数据
+                item = data_queue.get()
+                
+                if item is None:
+                    # 如果收到停止信号（可选逻辑，这里主要靠计数控制）
+                    continue
+                
+                packid, uttdict = item
+                
+                out_feat_path = os.path.join(out_dir, packid + '.' + featname)
+                position = 0
+
+                pbar_inner = tqdm(total=len(uttdict), desc=f"Pack: {packid}", position=1, leave=False, ncols=100)
+                
+                # GPU 计算和文件写入部分 (串行执行，保证顺序和显存管理简单)
+                try:
+                    with open(out_feat_path, 'wb') as outf:
+                        for utt in uttdict.keys(): 
+                            wavdata = uttdict[utt]
+                            
+                            # 【关键点】这里调用 GPU 计算
+                            feat = extractor_func(wavdata, utt, **params)
+                            
+                            if feat is None:
+                                feat = np.array([0]).astype(np.float32)
+                            
+                            feat = feat.astype(np.float32)
+                            fshape = feat.shape
+                            feat_flat = np.reshape(feat, -1)
+                            
+                            byte_feat = bytes(feat_flat)
+                            outf.write(byte_feat)
+                            
+                            byte_num = len(feat_flat) * 4 
+                            end_position = position + byte_num 
+                            
+                            feat_info_str = '|'.join([
+                                utt, 
+                                os.path.split(out_feat_path)[-1], 
+                                str(position), 
+                                str(end_position), 
+                                ','.join([str(xx) for xx in fshape])
+                            ])
+                            oinfo_out.write(feat_info_str + '\n')
+                            
+                            position += byte_num
+
+                            pbar_inner.update(1)
+
+                except Exception as e:
+                    print(f"Error processing features for {packid}: {e}")
+                finally:
+                    pbar_inner.close()
+                    # 重要：手动删除大对象，帮助垃圾回收，防止内存累积
+                    del uttdict
+                    del item
+                    
+                processed_count += 1
+                pbar.update(1)
+                
+        pbar.close()
+
+    # 确保所有加载线程都已完成（虽然队列取完了通常意味着工作做完了，但显式等待更稳妥）
+    for f in futures:
+        f.result()
+        
+    #print("All tasks completed.")
+
+
 def extract_feat_extrainfo(extractor_func, featname, input_dir, out_dir, from_type, **params):
     os.makedirs(out_dir, exist_ok=True)
     #data_dict = load_data_dict(input_dir, from_type)
