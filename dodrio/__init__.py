@@ -24,7 +24,7 @@ from dodrio.core.package_base import (
 from dodrio.core.datainfo_process import gen_infodir
 
 from dodrio.genlist.gendatalist import (
-    genListDir, gen_datalist, check_func
+    genListDir, gen_datalist, gen_datalist_addinfo, check_func
 )
 
 from dodrio.afeat.feat_extractor import (

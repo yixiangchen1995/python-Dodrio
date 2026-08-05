@@ -121,39 +121,29 @@ def pack_dict_load(package_dir):
     keylist = ['packpath', 'start', 'end']
     return outinfo_dict, keylist 
 
-def info_dict_load(info_dir, addinfo_list=None):
-    if addinfo_list is None:
-        addinfo_list = []
+def info_dict_load(info_dir):
     uttinfo_text_file = os.path.join(info_dir, 'uttinfo_text.list')
     with open(uttinfo_text_file, 'r') as otif:
         ti_lines = otif.readlines()
     info_dict = {}
     index_list = ti_lines[0].strip().split('|')
     spkid, textid, langid = -1, -1, -1 
-    addid_dict = {key: -1 for key in addinfo_list}
     for idx in range(len(index_list)):
         if index_list[idx] == 'speaker':
             spkid = idx
         elif index_list[idx] == 'text':
             textid = idx
-        elif index_list[idx] == 'language':
-            langid = idx
-        for addkey in addinfo_list:
-            if index_list[idx] == addkey:
-                addid_dict[addkey] = idx
+        if 'language' in index_list:
+            if index_list[idx] == 'language': 
+                langid = idx
     for idx in range(1, len(ti_lines)):
         spl = ti_lines[idx].strip().split('|')
         utt = spl[0]
         spk = spl[spkid]
         text = spl[textid]
         language = spl[langid] if langid != -1 else LANGUAGE_NONE
-        info_value = [spk, text, language]
-        for addkey in addinfo_list:
-            addid = addid_dict[addkey]
-            info_value.append(spl[addid] if addid != -1 else '')
-        info_dict[utt] = info_value
+        info_dict[utt] = [spk, text, language]
     keylist = ['speaker', 'text', 'language']
-    keylist.extend(addinfo_list)
     del ti_lines 
     return info_dict, keylist
 
@@ -305,120 +295,6 @@ def gen_datalist(supdir_list, outdir, featlist, check_func, prefix, subnum=50000
             #outlist[4] = str(spkid)
             outlist[4] = str(spkdict[spk])
             
-            outline = '|'.join(outlist) + '\n'
-            opsubt.write(outline)
-            if allsave_flag:
-                oallt.write(outline)
-
-            tmp_idx += 1
-    with open(keys_file, 'w') as okf:
-        save_keys = ['uttid']
-        save_keys.extend(all_keylist)
-        oline = '|'.join(save_keys) + '\n'
-        okf.write(oline)
-
-    if allsave_flag:
-        oallt.close()
-    opsubt.close()
-    olistsub.close()
-    with open(spk_id_file, 'w', encoding="utf-8") as opf:
-        json.dump(spkdict, opf, indent=2, ensure_ascii=False)
-    
-
-def datadirProcess_addinfo(datadir, featlist, check_func):
-    all_keylist = []
-    package_dir = os.path.join(datadir, 'pack_dir')
-    wav_info_dict, kl1 = pack_dict_load(package_dir)
-    all_keylist.extend(kl1)
-
-    tmp_featlist = featlist.copy()
-
-    # 将 featlist 中的 info 键（出现在 uttinfo_text.list 表头中）与真正的特征分离
-    info_dir = os.path.join(datadir, 'info_dir')
-    uttinfo_text_file = os.path.join(info_dir, 'uttinfo_text.list')
-    with open(uttinfo_text_file, 'r') as otif:
-        header = otif.readline().strip().split('|')
-    addinfo_list = [key for key in tmp_featlist if key in header]
-    real_featlist = [key for key in tmp_featlist if key not in header]
-
-    info_dict, kl2 = info_dict_load(info_dir, addinfo_list)
-    all_keylist.extend(kl2)
-
-    supfeat_dict = {}
-    kl_dict = {}
-
-    align_flag = False
-    if 'align' in real_featlist:
-        align_flag = True
-        real_featlist.remove('align')
-        align_dir = os.path.join(datadir, 'align_dir')
-        align_dict, kl3 = align_dict_load(align_dir)
-        all_keylist.extend(kl3)
-
-    for featname in real_featlist:
-        feat_dir = os.path.join(datadir, featname+'_dir')
-        supfeat_dict[featname], kl_dict[featname] = feat_dict_load(feat_dir, featname)
-        all_keylist.append('featname_'+featname)
-        all_keylist.extend(kl_dict[featname])
-
-    out_dict = {}
-    intersection = wav_info_dict.keys() & info_dict.keys()
-    if align_flag:
-        intersection = intersection & align_dict.keys()
-    for featname in real_featlist:
-        intersection = intersection & supfeat_dict[featname].keys()
-
-    for utt in intersection:
-        outinfo_list = wav_info_dict[utt]
-        outinfo_list.extend(info_dict[utt])
-        if align_flag:
-            outinfo_list.extend(align_dict[utt])
-        for featname in real_featlist:
-            outinfo_list.append(featname)
-            outinfo_list.extend(supfeat_dict[featname][utt])
-        if check_func(outinfo_list, utt):
-            out_dict[utt] = outinfo_list
-    return out_dict, all_keylist
-
-
-def gen_datalist_addinfo(supdir_list, outdir, featlist, check_func, prefix, subnum=50000):
-    os.makedirs(outdir, exist_ok=True)
-    allsave_flag = True
-    if allsave_flag:
-        all_list_file = os.path.join(outdir, 'all_usage_utt.list')
-    sub_table_dir = os.path.join(outdir, 'subtable')
-    os.makedirs(sub_table_dir, exist_ok=True)
-    spk_id_file = os.path.join(outdir, 'spk_name.dict')
-    list_list_file = os.path.join(outdir, 'list_subtable.list')
-    keys_file = os.path.join(outdir, 'keys_name')
-
-    spkdict = {}
-    spkid = 0
-    subtabel_id = 0
-    tmp_idx = 0
-    olistsub = open(list_list_file, 'w')
-    if allsave_flag:
-        oallt = open(all_list_file, 'w')
-    for datadir in supdir_list:
-        out_dict, all_keylist = datadirProcess_addinfo(datadir, featlist, check_func)
-        for utt in out_dict.keys():
-            if tmp_idx >= subnum:
-                tmp_idx = 0
-                subtabel_id += 1
-                opsubt.close()
-            if tmp_idx == 0:
-                subtable_file = os.path.join(sub_table_dir, prefix+'_sub_'+str(subtabel_id).rjust(6,'0')+ '.table')
-                opsubt = open(subtable_file, 'w')
-                olistsub.write(subtable_file+'\n')
-
-            outlist = [utt]
-            outlist.extend(out_dict[utt])
-            spk = outlist[4]
-            if spk not in spkdict.keys():
-                spkdict[spk] = spkid
-                spkid += 1
-            outlist[4] = str(spkdict[spk])
-
             outline = '|'.join(outlist) + '\n'
             opsubt.write(outline)
             if allsave_flag:
