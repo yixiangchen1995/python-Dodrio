@@ -10,7 +10,7 @@ LastEditTime: 2026-08-05 14:21:50
 
 from setuptools import setup, find_packages
 
-VERSION = '0.4.6' 
+VERSION = '0.4.7' 
 DESCRIPTION = 'Data Package for TTS '
 #LONG_DESCRIPTION = 'Data Package for TTS with a slightly longer description'
 LONG_DESCRIPTION = open("README.md", encoding="utf-8").read()

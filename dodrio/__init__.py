@@ -36,3 +36,7 @@ from dodrio.afeat.feat_extractor import (
 from dodrio.tools.load_data import (
     load_data_from_line, load_feat_single, load_audio_single, load_data_from_line_align, load_textinfo_data, load_data_dict
 )
+
+from dodrio.tools.get_audio_stats import (
+    get_uttinfo_audio, get_audio_stats
+)
