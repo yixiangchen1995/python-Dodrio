@@ -10,7 +10,7 @@ import math
 from scipy.io import wavfile
 import pyarrow.parquet as pq
 
-from dodrio.core.utils import set_wavlist, set_wavlist_predir
+from dodrio.core.utils import set_wavlist, set_wavlist_predir, set_wavlist_dirlist
 
 ############## Parquet to Package ###############   
 
@@ -141,9 +141,11 @@ def load_audio_content(utt, audiopath, target_sample_rate, file_type='wav'):
         return None
     return int16_audio 
 
-def gen_package(wav_dir, package_dir, mid_name='', target_sample_rate=48000, file_type='wav', num_utts_per_parquet=2000, process_max_num=10000, use_pre_dir=False, pre_dir='merge'):
+def gen_package(wav_dir, package_dir, mid_name='', target_sample_rate=48000, file_type='wav', num_utts_per_parquet=2000, process_max_num=10000, use_pre_dir=False, pre_dir='merge', use_dirlist=False, csv_name='result_step2.csv'):
     os.makedirs(package_dir, exist_ok=True)
-    if use_pre_dir:
+    if use_dirlist:
+        wavdict, uttlist = set_wavlist_dirlist(wav_dir, file_type, csv_name=csv_name)
+    elif use_pre_dir:
         wavdict, uttlist = set_wavlist_predir(wav_dir, file_type, pre_dir=pre_dir)
     else:
         wavdict, uttlist = set_wavlist(wav_dir, file_type)

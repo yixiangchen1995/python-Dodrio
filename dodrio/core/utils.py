@@ -80,7 +80,7 @@ import time
 
 warnings.filterwarnings('ignore')
 
-def process_single_subdir_smart(args):
+def process_single_subdir_smart(args, csv_name='result_step2.csv'):
     """
     智能处理函数：
     1. 读取子目录绝对路径
@@ -90,34 +90,65 @@ def process_single_subdir_smart(args):
     subdir_abs_path_str = args
     subdir_path = Path(subdir_abs_path_str)
     
-    csv_file = subdir_path / "result_step2.csv"
+    csv_file = subdir_path / csv_name
     
     if not csv_file.is_file():
         return {}, []
     
     try:
+        # 先读取表头判断可用列
+        header_df = pd.read_csv(csv_file, nrows=0)
+        columns = set(header_df.columns)
+        has_final_result = 'final_result' in columns
+        has_error_msg = 'error_msg' in columns
+        if 'denoised_file' not in columns:
+            return {}, []
+
+        usecols = ['denoised_file']
+        if has_final_result:
+            usecols.append('final_result')
+        if has_error_msg:
+            usecols.append('error_msg')
+
         df = pd.read_csv(
             csv_file, 
-            usecols=['final_result', 'denoised_file'],
+            usecols=usecols,
             dtype={'denoised_file': str},
             on_bad_lines='skip'
         )
-        
+
         if df.empty:
             return {}, []
-            
-        # 过滤 True
-        mask = df['final_result'].astype(str).str.lower() == 'true'
-        filtered_df = df.loc[mask, ['denoised_file']]
-        
+
+        # 清洗数据
+        df['denoised_file'] = df['denoised_file'].str.strip().str.strip('"').str.strip("'")
+        df = df.dropna(subset=['denoised_file'])
+        df = df[df['denoised_file'] != '']
+
+        if df.empty:
+            return {}, []
+
+        # 过滤数据：优先使用 final_result 列
+        if has_final_result:
+            mask = df['final_result'].astype(str).str.lower() == 'true'
+            filtered_df = df.loc[mask, ['denoised_file']].copy()
+        elif has_error_msg:
+            # error_msg 为空表示无错误，保留该行
+            mask = df['error_msg'].fillna('').astype(str).str.strip() == ''
+            filtered_df = df.loc[mask, ['denoised_file']].copy()
+        else:
+            return {}, []
+
         if filtered_df.empty:
             return {}, []
-            
-        # 清洗数据
+
+        # 再次清洗数据
         filtered_df['denoised_file'] = filtered_df['denoised_file'].str.strip().str.strip('"').str.strip("'")
+        # 去除可能存在的 ./.tmp 前缀
+        filtered_df['denoised_file'] = filtered_df['denoised_file'].str.replace(r'^\./\.tmp/?', '', regex=True)
         filtered_df = filtered_df.dropna(subset=['denoised_file'])
         filtered_df = filtered_df[filtered_df['denoised_file'] != '']
-        
+
         if filtered_df.empty:
             return {}, []
 
@@ -163,10 +194,11 @@ def process_single_subdir_smart(args):
         return {}, []
     
 
-def set_wavlist_dirlist(wav_dir, file_type, rm_prefix=False):
+def set_wavlist_dirlist(wav_dir, file_type, rm_prefix=False, csv_name='result_step2.csv'):
     """
     无需 root_dir 的版本。
     直接利用 txt 中的子目录绝对路径和 CSV 内容智能拼接。
+    csv_name: 子目录下 CSV 文件名，默认为 result_step2.csv
     """
     list_file_path = os.path.join(wav_dir, "all_paths.txt")
     max_workers = 16
@@ -195,7 +227,7 @@ def set_wavlist_dirlist(wav_dir, file_type, rm_prefix=False):
 
     start_time = time.time()
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        future_to_info = {executor.submit(process_single_subdir_smart, task): i for i, task in enumerate(tasks)}
+        future_to_info = {executor.submit(process_single_subdir_smart, task, csv_name): i for i, task in enumerate(tasks)}
 
         for future in as_completed(future_to_info):
             try:

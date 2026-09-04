@@ -20,7 +20,7 @@ import pyarrow.parquet as pq
 
 from tinytag import TinyTag # for read mp3 metainfo
 
-from dodrio.core.utils import set_wavlist, set_wavlist_predir
+from dodrio.core.utils import set_wavlist, set_wavlist_predir, set_wavlist_dirlist
 
 ############## Wav to Parquet ###############
 
@@ -104,7 +104,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 def gen_parquet(wav_dir, parquet_dir, mid_name='', file_type='wav', 
                 num_utts_per_parquet=2000, num_save_processes=5, 
                 process_max_num=10000, use_pre_dir=False, pre_dir='merge',
-                num_load_threads=16): # 新增：读取线程数
+                use_dirlist=False, csv_name='result_step2.csv', num_load_threads=16): # 新增：读取线程数
     """
     优化版：
     1. 外层 Turn 串行（控制内存）。
@@ -113,7 +113,9 @@ def gen_parquet(wav_dir, parquet_dir, mid_name='', file_type='wav',
     """
     os.makedirs(parquet_dir, exist_ok=True)
     
-    if use_pre_dir:
+    if use_dirlist:
+        wavdict, uttlist = set_wavlist_dirlist(wav_dir, file_type, csv_name=csv_name)
+    elif use_pre_dir:
         wavdict, uttlist = set_wavlist_predir(wav_dir, file_type, pre_dir=pre_dir)
     else:
         wavdict, uttlist = set_wavlist(wav_dir, file_type)
