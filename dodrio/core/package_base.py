@@ -51,36 +51,50 @@ def save_meta_info(outdir, sample_rate, num_utts_per_parquet):
 
 def parquet2package_single(parquet_file, package_file, target_sample_rate=48000):
     ftype = os.path.split(parquet_file)[-1].split('_')[0]
-    df = pq.read_table(parquet_file).to_pandas()
     basename = os.path.split(parquet_file)[-1].split('.parquet')[0]
+
+    # 如果 parquet 文件损坏则跳过该数据块，不生成对应 pack 文件
+    try:
+        df = pq.read_table(parquet_file).to_pandas()
+    except Exception as e:
+        print(f"⚠️ parquet 读取失败，跳过该数据块: {parquet_file} | 错误类型: {type(e).__name__}, 详情: {e}")
+        return [], 0
+
     position = 0
     info_list = []
     audio_pos = {}
-    outf = open(package_file, 'wb')
-    num_utts_per_parquet = len(df)
-    for idx in tqdm(range(len(df)), desc=f'{basename} Processing'):
-        utt = df.iloc[idx]['utt']
-        sr = df.iloc[idx]['sample_rate']
-        dtype = df.iloc[idx]['dtype']
-        audio = df.iloc[idx]['audio_data']
-        if ftype == 'wav':
-            reg_audio = audio_regular(audio, sr, dtype, target_sample_rate)
-        elif ftype == 'mp3':
-            reg_audio = load_mp3_frombio(audio, target_sample_rate) 
-        else:
-            print("Now just accept mp3 and wav format")
-            return
+    with open(package_file, 'wb') as outf:
+        for idx in tqdm(range(len(df)), desc=f'{basename} Processing'):
+            try:
+                utt = df.iloc[idx]['utt']
+                sr = df.iloc[idx]['sample_rate']
+                dtype = df.iloc[idx]['dtype']
+                audio = df.iloc[idx]['audio_data']
+                if ftype == 'wav':
+                    reg_audio = audio_regular(audio, sr, dtype, target_sample_rate)
+                elif ftype == 'mp3':
+                    reg_audio = load_mp3_frombio(audio, target_sample_rate)
+                else:
+                    print("Now just accept mp3 and wav format")
+                    break
 
-        byte_audio = bytes(reg_audio)
-        outf.write(byte_audio)
+                byte_audio = bytes(reg_audio)
+                outf.write(byte_audio)
 
-        byte_num = len(reg_audio)* 2 
-        end_position = position+byte_num 
-        audio_pos[utt] = [position, end_position]
-        info_list.append([utt, os.path.split(package_file)[-1], str(position), str(end_position)])
+                byte_num = len(reg_audio)* 2
+                end_position = position+byte_num
+                audio_pos[utt] = [position, end_position]
+                info_list.append([utt, os.path.split(package_file)[-1], str(position), str(end_position)])
 
-        position += byte_num
-    return info_list, num_utts_per_parquet
+                position += byte_num
+            except Exception as e:
+                try:
+                    utt_str = df.iloc[idx]['utt']
+                except Exception:
+                    utt_str = f'index_{idx}'
+                print(f"⚠️ 单条数据处理失败，跳过: {utt_str} | 错误类型: {type(e).__name__}, 详情: {e}")
+                continue
+    return info_list, len(info_list)
 
 def parquet2package(parquet_dir, package_dir, sample_rate=48000):
     os.makedirs(package_dir, exist_ok=True)
